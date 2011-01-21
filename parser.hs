@@ -98,10 +98,9 @@ parseText = manyTill anyChar (try newline)
 parseTopic :: Parser String
 parseTopic =
     do
-        many space
-        string "changed the topic of "
+        string " changed the topic of "
         channel <- many (alphaNum <|> oneOf "#.")
-        string "to: "
+        string " to: "
         text <- parseText
         return $ text
 
