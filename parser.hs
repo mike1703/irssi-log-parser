@@ -16,7 +16,7 @@ instance Show DateTime where
 data Event = LogOpen DateTime| LogClose DateTime | DayChanged Date |
                 Mode [Nick] ChanMode | NickAction Nick String |
                 TopicChange Nick String | Kick Nick Nick String |
-                NickChange Nick Nick | Join Nick | Quit Nick String |
+                NickChange Nick Nick | Join Nick String | Quit Nick String |
                 Part Nick String | Message Nick String | NetSplit String |
                 NotImplemented String
 
@@ -29,7 +29,7 @@ instance Show Event where
     show (TopicChange nick topic) = show nick ++ " changed the topic to " ++ show topic
     show (Kick kicker kicked reason) = show kicker ++ " kicked " ++ show kicked ++ " because " ++ show reason
     show (NickChange oldnick newnick) = show oldnick ++ " changed his nick to " ++ show newnick
-    show (Join nick) = show nick ++ " joined"
+    show (Join nick hostmask) = show nick ++ " joined"
     show (Quit nick reason) = show nick ++ " has quit because " ++ show reason
     show (Part nick reason) = show nick ++ " has parted because " ++ show reason
     show (Message nick text) = show nick ++ ": " ++ show text
@@ -63,6 +63,9 @@ parseNick =
         head <- letter <|> nickSpecial
         tail <- many1 (alphaNum <|> nickSpecial <|> char '-')
         return $ Nick (head : tail)
+
+parseHostmask :: Parser String
+parseHostmask = many (alphaNum <|> oneOf "~@-.")
 
 parseDateTime :: Parser DateTime
 parseDateTime =
@@ -112,6 +115,7 @@ parseSpecialAction =
     do
         nick <- parseNick
         try (parseTopic >>= \topic -> return $ TopicChange nick topic) <|>
+            try (do space; char '['; hostmask <- parseHostmask; char ']'; string " has joined "; parseText; return $ Join nick hostmask) <|>
             (parseText >>= \dummy -> return $ NotImplemented dummy)
 
 parseMessage :: Parser Event
