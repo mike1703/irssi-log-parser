@@ -17,7 +17,8 @@ data Event = LogOpen DateTime| LogClose DateTime | DayChanged Date |
                 Mode [Nick] ChanMode | NickAction Nick String |
                 TopicChange Nick String | Kick Nick Nick String |
                 NickChange Nick Nick | Join Nick | Quit Nick String |
-                Part Nick String | Message Nick String | NotImplemented String
+                Part Nick String | Message Nick String | NetSplit String |
+                NotImplemented String
 
 instance Show Event where
     show (LogOpen date) = "log opened on " ++ show date
@@ -32,6 +33,7 @@ instance Show Event where
     show (Quit nick reason) = show nick ++ " has quit because " ++ show reason
     show (Part nick reason) = show nick ++ " has parted because " ++ show reason
     show (Message nick text) = show nick ++ ": " ++ show text
+    show (NetSplit info) = show "NetSplit " ++ info
     show (NotImplemented txt) = "NOT IMPLEMENTED YET: " ++ txt
 
 data TimedEvent = TimedEvent Time Event
@@ -100,6 +102,11 @@ parseTopic =
         text <- parseText
         return $ text
 
+parseNetsplit :: Parser Event
+parseNetsplit =
+    (string "over, joins" >> parseText >>= \nicks -> return $ NetSplit nicks) <|>
+        (parseText >>= \splitinfo -> return $ NetSplit splitinfo)
+
 parseSpecialAction :: Parser Event
 parseSpecialAction = 
     do
@@ -137,7 +144,7 @@ parseNormalEvent :: Parser TimedEvent
 parseNormalEvent =
     do
         time <- parseTime;
-        event <- ((string "-!- " >> parseSpecialAction) <|> parseAction <|> parseMessage)
+        event <- (try( string "-!- Netsplit" >> parseNetsplit) <|> (string "-!- " >> parseSpecialAction) <|> parseAction <|> parseMessage)
         return $ TimedEvent time event
         
 parseLine :: Parser TimedEvent
