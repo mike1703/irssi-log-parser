@@ -117,6 +117,7 @@ parseSpecialAction =
             try (do space; char '['; hostmask <- parseHostmask; char ']'; string " has joined "; parseText; return $ Join nick hostmask) <|>
             try (do space; char '['; hostmask <- parseHostmask; char ']'; string " has quit "; reason <- parseText; return $ Quit nick reason) <|>
             try (do space; char '['; hostmask <- parseHostmask; char ']'; string " has left "; reason <- parseText; return $ Part nick reason) <|>
+            try (do space; string "is now known as "; newnick <- parseNick; newline; return $ NickChange nick newnick) <|>
             (parseText >>= \dummy -> return $ NotImplemented dummy)
 
 parseMessage :: Parser Event
