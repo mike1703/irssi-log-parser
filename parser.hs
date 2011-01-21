@@ -65,7 +65,7 @@ parseNick =
         return $ Nick (head : tail)
 
 parseHostmask :: Parser String
-parseHostmask = many (alphaNum <|> oneOf "~@-.")
+parseHostmask = many (alphaNum <|> oneOf "~@-.:/")
 
 parseDateTime :: Parser DateTime
 parseDateTime =
