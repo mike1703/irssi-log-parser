@@ -1,4 +1,4 @@
-module Main where
+module IrssiLogParser where
 import System.Environment
 import Text.ParserCombinators.Parsec
 
@@ -46,7 +46,7 @@ parseTime =
         hour <- count 2 digit
         char ':'
         minute <- count 2 digit
-        try (option "00" (char ':' >> count 2 digit)) -- TODO: seconds
+        second <- option "00" (try (char ':') >> count 2 digit) -- TODO: seconds
         many space
         return $ Time hour minute
 
@@ -67,26 +67,19 @@ parseNick =
 parseHostmask :: Parser String
 parseHostmask = many (alphaNum <|> oneOf "~@-.:/")
 
+-- possible dateformats
+-- Do Jul 01 00:00:35 2010
+-- Fr Jul 02 2010
 parseDateTime :: Parser DateTime
 parseDateTime =
     do
         dayName <- count 2 letter; space
         monthName <- count 3 letter; space
         day <- count 2 digit; space
-        time <- try parseTime --option (Time "00" "00") parseTime
+        time <- option (Time "00" "00") (try parseTime)
         year <- count 4 digit
         -- TODO: verifiy the date by using lib functions
         return $ DateTime (Date (dayName ++ " " ++ monthName ++ " " ++ day ++ " " ++ year)) time
-
-parseDate :: Parser DateTime
-parseDate =
-    do
-        dayName <- count 2 letter; space
-        monthName <- count 3 letter; space
-        day <- count 2 digit; space
-        year <- count 4 digit
-        -- TODO: verifiy the date by using lib functions
-        return $ DateWOTime (Date (dayName ++ " " ++ monthName ++ " " ++ day ++ " " ++ year))
 
 parseText :: Parser String
 parseText = many (noneOf "\n")
@@ -138,7 +131,7 @@ parseSpecialEvent :: Parser TimedEvent
 parseSpecialEvent =
     do
         string "--- "
-        (string "Day changed " >> parseDate >>= \(DateWOTime date) -> return $ TimedEvent (Time "00" "00") (DayChanged date)) <|>
+        (string "Day changed " >> parseDateTime >>= \(DateTime date time) -> return $ TimedEvent time (DayChanged date)) <|>
             try (string "Log opened " >> parseDateTime >>= \(DateTime date time) -> return $ TimedEvent time (LogOpen $ DateTime date time)) <|>
             (string "Log closed " >> parseDateTime >>= \(DateTime date time) -> return $ TimedEvent time (LogClose $ DateTime date time))
 
@@ -154,12 +147,3 @@ parseLine = parseSpecialEvent <|> parseNormalEvent
 
 irssiParser :: Parser [TimedEvent]
 irssiParser = many (parseLine >>= \te -> newline >> return te)
-
-main :: IO ()
-main =
-    do
-        args <- getArgs
-        result <- parseFromFile irssiParser (args !! 0)
-        case (result) of
-            Left err  -> print err
-            Right val  -> putStr $ unwords (fmap ((++ "\n") . show) (take 10 val))
