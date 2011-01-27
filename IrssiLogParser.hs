@@ -5,10 +5,10 @@ import Text.ParserCombinators.Parsec
 data Nick = Nick String deriving Show
 data ChanMode = ChanMode String deriving Show
 data Date = Date String deriving Show
-data Time = Time String String -- "00:00" -> 00 00
+data Time = Time String String String
 data DateTime = DateTime Date Time | DateWOTime Date
 instance Show Time where
-    show (Time hour minute) = hour ++ ":" ++ minute
+    show (Time hour minute second) = hour ++ ":" ++ minute ++ ":" ++ second
 instance Show DateTime where
     show (DateTime date time) = show date ++ "T" ++ show time
     show (DateWOTime date) = show date
@@ -48,7 +48,7 @@ parseTime =
         minute <- count 2 digit
         second <- option "00" (try (char ':') >> count 2 digit) -- TODO: seconds
         many space
-        return $ Time hour minute
+        return $ Time hour minute second
 
 --special    =  %x5B-60 / %x7B-7D ; "[", "]", "\", "`", "_", "^", "{", "|", "}"
 nickSpecial = oneOf "[]\\'_^{|}" <|> oneOf "`"
@@ -76,7 +76,7 @@ parseDateTime =
         dayName <- count 2 letter; space
         monthName <- count 3 letter; space
         day <- count 2 digit; space
-        time <- option (Time "00" "00") (try parseTime)
+        time <- option (Time "00" "00" "00") (try parseTime)
         year <- count 4 digit
         -- TODO: verifiy the date by using lib functions
         return $ DateTime (Date (dayName ++ " " ++ monthName ++ " " ++ day ++ " " ++ year)) time
