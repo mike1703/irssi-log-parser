@@ -75,8 +75,6 @@ parseDateTime =
         day <- count 2 digit; space
         time <- try parseTime --option (Time "00" "00") parseTime
         year <- count 4 digit
-        -- TODO: this is just a temporary place to scan the newline!
-        newline
         -- TODO: verifiy the date by using lib functions
         return $ DateTime (Date (dayName ++ " " ++ monthName ++ " " ++ day ++ " " ++ year)) time
 
@@ -87,13 +85,11 @@ parseDate =
         monthName <- count 3 letter; space
         day <- count 2 digit; space
         year <- count 4 digit
-        -- TODO: this is just a temporary place to scan the newline!
-        newline
         -- TODO: verifiy the date by using lib functions
         return $ DateWOTime (Date (dayName ++ " " ++ monthName ++ " " ++ day ++ " " ++ year))
 
 parseText :: Parser String
-parseText = manyTill anyChar (try newline)
+parseText = many (noneOf "\n")
 
 parseTopic :: Parser String
 parseTopic =
@@ -117,7 +113,7 @@ parseSpecialAction =
             try (do space; char '['; hostmask <- parseHostmask; char ']'; string " has joined "; parseText; return $ Join nick hostmask) <|>
             try (do space; char '['; hostmask <- parseHostmask; char ']'; string " has quit "; reason <- parseText; return $ Quit nick reason) <|>
             try (do space; char '['; hostmask <- parseHostmask; char ']'; string " has left "; reason <- parseText; return $ Part nick reason) <|>
-            try (do space; string "is now known as "; newnick <- parseNick; newline; return $ NickChange nick newnick) <|>
+            try (do space; string "is now known as "; newnick <- parseNick; return $ NickChange nick newnick) <|>
             (parseText >>= \dummy -> return $ NotImplemented dummy)
 
 parseMessage :: Parser Event
@@ -157,7 +153,7 @@ parseLine :: Parser TimedEvent
 parseLine = parseSpecialEvent <|> parseNormalEvent
 
 irssiParser :: Parser [TimedEvent]
-irssiParser = many parseLine
+irssiParser = many (parseLine >>= \te -> newline >> return te)
 
 main :: IO ()
 main =
