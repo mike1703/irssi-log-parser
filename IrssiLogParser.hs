@@ -6,12 +6,11 @@ data Nick = Nick String deriving Show
 data ChanMode = ChanMode String deriving Show
 data Date = Date String deriving Show
 data Time = Time String String String
-data DateTime = DateTime Date Time | DateWOTime Date
+data DateTime = DateTime Date Time
 instance Show Time where
     show (Time hour minute second) = hour ++ ":" ++ minute ++ ":" ++ second
 instance Show DateTime where
     show (DateTime date time) = show date ++ "T" ++ show time
-    show (DateWOTime date) = show date
 
 data Event = LogOpen DateTime| LogClose DateTime | DayChanged Date |
                 Mode [Nick] ChanMode | NickAction Nick String |
